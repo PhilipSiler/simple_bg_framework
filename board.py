@@ -1,5 +1,8 @@
 import unittest
 
+def find_unique_and_sort(boards):
+    return sorted(list(set(boards)))
+
 class Board:
     #h_bar = hero checkers on bar, v_bar = villain checkers on bar. Dice is an array of either len 0, 2, or 4.
     #hero is trying to go left to right.
@@ -13,8 +16,8 @@ class Board:
             self.dice = []
         else:
             self.dice = dice
-        self.h_bar = 0
-        self.v_bar = 0
+        self.h_bar = h_bar
+        self.v_bar = v_bar
 
     def __eq__(self, other):
         if not isinstance(other, Board):
@@ -41,7 +44,7 @@ class Board:
         return True
     
     def is_move_legal(self, end):
-        if end >= 0 and end < 24 and self.points[end] > -1:
+        if end >= 0 and end < 24 and self.points[end] >= -1:
             return True
         
     def list_moves_in_from_bar(self): #these will only return any next positions that use up one die if there are any. 
@@ -64,29 +67,71 @@ class Board:
                 temp_board = Board(temp_points, temp_h_bar, temp_v_bar, temp_dice)
                 child_boards.append(temp_board)
         return child_boards
-
-    def list_moves_no_double(self):
+    
+    def list_single_moves(self):
         child_boards = []
-        if self.h_bar > 0: #check if checker on bar
-            child_boards.append(self.list_moves_in_from_bar()) #finds all ways to get one checker off of the bar
-            if len(child_boards == 0):
+        for i_p, p in enumerate(self.points):
+            if p > 0: #there is a checker on this point, find all ways to use different dice to move this
+                for i_d, d in enumerate(self.dice):
+                    if self.is_move_legal(i_p + d):
+                        temp_dice = self.dice.copy()
+                        temp_dice.pop(i_d) #remove the used die
+                        temp_h_bar = self.h_bar
+                        temp_v_bar = self.v_bar
+                        temp_points = self.points.copy()
+                        temp_points[i_p] -= 1 #subtract a checker from the start point p
+                        temp_points[i_p + d] += 1 # add a checker to the new point p + d
+                        #if new point p + d == 0, that means we just hit a blot
+                        if temp_points[i_p + d] == 0:
+                            temp_v_bar += 1 #add one checker to villain bar
+                            temp_points[i_p + d] += 1
+                        temp_board = Board(temp_points, temp_h_bar, temp_v_bar, temp_dice)
+                        child_boards.append(temp_board)
+        return child_boards
+
+                        
+
+    def list_moves_no_double(self): #should not send back duplicates
+        child_boards = []
+        #if checker on bar
+        if self.h_bar > 0: 
+            child_boards.extend(self.list_moves_in_from_bar()) #finds all ways to get one checker off of the bar
+            if len(child_boards) == 0:
                 return [self] #cannot come in from bar, so we return the current board state as we cannot make any changes
-        
-        #check if a checker is still on the bar:
-        if child_boards[0].h_bar > 0:
+
+            #check if a checker is still on the bar:
+            if child_boards[0].h_bar > 0:
+                temp_child_boards = []
+                for c_b in child_boards:
+                    if c_b.h_bar > 0: # check if still have checker on the bar
+                        temp_child_boards.extend(c_b.list_moves_in_from_bar())
+
+                #if we could did have two checkers on the bar but could only bring ONE checker in, then temp_child_boards should have len = 0 and we can return child_boards
+                if len(temp_child_boards) == 0:
+                    b = child_boards.fin
+                    return find_unique_and_sort(child_boards)
+                #else, we were able to bring in two checkers and thus should return temp_child_boards, which should really only have one item in it
+                else:
+                    return find_unique_and_sort(temp_child_boards)
+
+        #if checker not on bar, this must also account for what to do when 
+        #so potentially one, or two dice to use
+        #first, check if child_boards has any existing boards, which would mean we came in from the bar. check for legal moves from those positions, those now become child_boards
+        if len(child_boards) > 0:
             temp_child_boards = []
             for c_b in child_boards:
-                if c_b.h_bar > 0: # check if still have checker on the bar
-                    temp_child_boards.append(c_b.list_moves_in_from_bar())
-
-            #if we could did have two checkers on the bar but could only bring ONE checker in, then temp_child_boards should have len = 0 and we can return child_boards
-            if len(temp_child_boards) == 0:
-                return child_boards
-            #else, we were able to bring in two checkers and thus should return temp_child_boards, which should really only have one item in it
-            else:
-                return temp_child_boards
-
+                temp_child_boards.extend(c_b.list_single_moves()) #get single
+            child_boards = temp_child_boards
+            return child_boards 
         
+        #at this point, no checkers were on the bar so we just need to list legal moves without worrying about coming in
+        child_boards = self.list_single_moves()
+        temp_child_boards = []
+        for c_b in child_boards:
+            temp_child_boards.extend(c_b.list_single_moves())
+
+        return temp_child_boards
+
         
     
     def list_moves_double(self):
