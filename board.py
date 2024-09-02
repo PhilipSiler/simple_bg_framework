@@ -47,6 +47,32 @@ class Board:
         if end >= 0 and end < 24 and self.points[end] >= -1:
             return True
         
+    def is_move_legal_bearoff(self, start, die):
+        min_index_with_checker = 0 #used to determine whether we can use larger rolls to bear checkers off of smaller points
+        #for instance, can we use a 6 to bear off a 3, or a 2 to bear off a 1.
+        for i in range(23, 16, -1):
+            if self.points[i] > 0:
+                min_index_with_checker = i
+
+        if start + die <= 24: #moving piece forward or bearing it off using the exact number
+            return True
+        if start == min_index_with_checker: #moving piece from the back always allowed,
+            return True
+        return False
+        
+    def is_on_bar(self):
+        return self.h_bar > 0
+    
+    def is_bearing_off(self):
+        for p in self.points[:18]:
+            if p > 0:
+                return False #there is at least one hero checker on points 0 - 17
+        return True #there is not at least one checker on points 0 - 17
+        
+    def is_won(self):
+        #checks if there are any remaining positive values in points. If yes, returns False, if no, returns True.
+        return True
+        
     def list_moves_in_from_bar(self): #these will only return any next positions that use up one die if there are any. 
         child_boards = []
         for i, d in enumerate(self.dice):
@@ -68,7 +94,29 @@ class Board:
                 child_boards.append(temp_board)
         return child_boards
     
-    def list_single_moves(self):
+    def list_moves_bearing_off(self):
+        child_boards = []
+        for i_p, p in enumerate(self.points[17:]): #points for hero's home board, represented as indices [17:23]
+            if p > 0: #if there is a checker on point i_p
+                for i_d, d in enumerate(self.dice): #check all possible dice that we can use to move that checker
+                    if self.is_move_legal(i_p, d):
+                        temp_dice = self.dice.copy()
+                        temp_dice.pop(i_d) #remove the used die
+                        temp_h_bar = self.h_bar #should always be zero
+                        temp_v_bar = self.v_bar
+                        temp_points = self.points.copy()
+                        temp_points[i_p] -= 1 #subtract a checker from the start point p
+                        if i_p + d <= 23: #if checker is still on the board and has not yet been borne off
+                            temp_points[i_p + d] += 1 # add a checker to the new point p + d
+                            #if new point p + d == 0, that means we just hit a blot
+                            if temp_points[i_p + d] == 0: 
+                                temp_v_bar += 1 #add one checker to villain bar
+                                temp_points[i_p + d] += 1
+                        temp_board = Board(temp_points, temp_h_bar, temp_v_bar, temp_dice)
+                        child_boards.append(temp_board)
+        return child_boards.append()
+    
+    def list_moves_standard(self):
         child_boards = []
         for i_p, p in enumerate(self.points):
             if p > 0: #there is a checker on this point, find all ways to use different dice to move this
@@ -89,69 +137,35 @@ class Board:
                         child_boards.append(temp_board)
         return child_boards
 
-                        
-
-    def list_moves_no_double(self): #should not send back duplicates
-        child_boards = []
-        #if checker on bar
-        if self.h_bar > 0: 
-            child_boards.extend(self.list_moves_in_from_bar()) #finds all ways to get one checker off of the bar
-            if len(child_boards) == 0:
-                return [self] #cannot come in from bar, so we return the current board state as we cannot make any changes
-
-            #check if a checker is still on the bar:
-            if child_boards[0].h_bar > 0:
-                temp_child_boards = []
-                for c_b in child_boards:
-                    if c_b.h_bar > 0: # check if still have checker on the bar
-                        temp_child_boards.extend(c_b.list_moves_in_from_bar())
-
-                #if we could did have two checkers on the bar but could only bring ONE checker in, then temp_child_boards should have len = 0 and we can return child_boards
-                if len(temp_child_boards) == 0:
-                    b = child_boards.fin
-                    return find_unique_and_sort(child_boards)
-                #else, we were able to bring in two checkers and thus should return temp_child_boards, which should really only have one item in it
-                else:
-                    return find_unique_and_sort(temp_child_boards)
-
-        #if checker not on bar, this must also account for what to do when 
-        #so potentially one, or two dice to use
-        #first, check if child_boards has any existing boards, which would mean we came in from the bar. check for legal moves from those positions, those now become child_boards
-        if len(child_boards) > 0:
-            temp_child_boards = []
-            for c_b in child_boards:
-                temp_child_boards.extend(c_b.list_single_moves()) #get single
-            child_boards = temp_child_boards
-            return child_boards 
-        
-        #at this point, no checkers were on the bar so we just need to list legal moves without worrying about coming in
-        child_boards = self.list_single_moves()
-        temp_child_boards = []
-        for c_b in child_boards:
-            temp_child_boards.extend(c_b.list_single_moves())
-
-        return temp_child_boards
-
-        
     
-    def list_moves_double(self):
-        return []
-    
-    #splits up requests into list_moves_double and list_moves_no_double
-    def list_moves(self):
-        if len(self.dice) == 4:
-            return self.list_moves_double()
+    def list_moves_helper(self):
+        if self.is_on_bar():
+            return self.list_moves_in_from_bar()
+        elif self.is_bearing_off():
+            return self.list_moves_bearing_off()
         else:
-            return self.list_moves_no_double()
-        #returns a list of possible next moves, given a Board
-        #first, check if we are on the bar
+            return self.list_moves_standard()
+
+    def list_moves(self):
+        #basic idea: for as long as there are dice to be moved and new moves being generated in each successive generation of possible moves, we continue to generate new child_board sets
+        child_boards = []
+        child_boards = self.list_moves_helper() #first die
+        next_child_boards = []
+        for c_b in child_boards:
+            next_child_boards.extend(c_b.list_moves_helper()) #second die
+
+        next_child_boards = sorted(list(set(next_child_boards)))
+        if len(self.dice) > 2: #this only happens if doubles were rolled
+            child_boards = next_child_boards
+            next_child_boards = []
+            for c_b in child_boards:
+                next_child_boards.extend(c_b.list_moves_helper()) #third die
+            next_child_boards = sorted(list(set(next_child_boards)))
+            child_boards = next_child_boards
+            next_child_boards = []
+            for c_b in child_boards:
+                next_child_boards.extend(c_b.list_moves_helper()) #third die
+
+        return sorted(list(set(next_child_boards))) # return
         
-
-            
-
-        return True
-    
-    def has_won(self):
-        #checks if there are any remaining positive values in points. If yes, returns False, if no, returns True.
-        return True
     
