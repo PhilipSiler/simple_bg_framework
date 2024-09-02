@@ -150,6 +150,19 @@ class Test_Moves(unittest.TestCase):
         expected = False
         self.assertEqual(result, expected)
 
+    def test_bear_off_43(self): #test different ways of moving checkers when bearing off
+        board = Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,1,0,1,1,0,0], 0, 0, [4,3])
+        result = board.list_moves()
+        expected = [Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,1,0,0,0,0,0], 0, 0, []),Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,1,0,1,0], 0, 0, []),Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,2,0,0], 0, 0, []),Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,1,1,1], 0, 0, [])]
+        expected.sort()
+        self.assertEqual(result, expected)
+
+    def bear_off_with_extra_dice(self):
+        board = Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,2,0,0,0,1,-2], 0, 0, [6,6,6,6])
+        result = board.list_moves()
+        expected = [Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,0,0,-2], 0, 0, [6])]
+        self.assertEqual(result, expected)
+    
     
     """
     def test_list_moves_11(self):
