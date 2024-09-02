@@ -6,14 +6,12 @@ class Test_Moves(unittest.TestCase):
     def test_come_in_single_checker(self):
         board = Board([1,0,0,0,0,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 1, 0, [6,4])
         result = board.list_moves_in_from_bar()
-        result.sort()
         expected = [Board([1,0,0,1,0,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 0, 0, [6])] #we expect to use the [4] die to come in on index 3 in board.
         self.assertEqual(result, expected)
 
     def test_come_in_single_checker_with_options(self):
         board = Board([1,0,0,0,0,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 1, 0, [5,4])
         result = board.list_moves_in_from_bar()
-        result.sort()
         expected = [Board([1,0,0,1,0,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 0, 0, [5]), Board([1,0,0,0,1,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 0, 0, [4])] 
         expected.sort()
         self.assertEqual(result, expected) 
@@ -21,7 +19,6 @@ class Test_Moves(unittest.TestCase):
     def test_come_in_single_checker_hit(self):
         board = Board([1,0,-2,-2,-1,-3,0,0,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 1, 0, [5,4])
         result = board.list_moves_in_from_bar()
-        result.sort()
         expected = [Board([1,0,-2,-2,1,-3,0,0,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 0, 1, [4])]
         expected.sort()
         self.assertEqual(result, expected)
@@ -104,6 +101,56 @@ class Test_Moves(unittest.TestCase):
         result = board.list_moves()
         expected = [Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,1,0,0,-2], 0, 0, [])]
         self.assertEqual(result, expected)
+
+    def test_bearing_off_65_from_6_hit_on_1(self):
+        board = Board([0,0,0,0,0,-6,0,-3,0,0,0,0,-5,0,0,0,0,0,2,0,0,0,0,-1], 0, 0, [6,5])
+        result = board.list_moves()
+        expected = [Board([0,0,0,0,0,-6,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,0,0,1], 0, 1, [])]
+        self.assertEqual(result, expected)
+
+    def test_bearing_off_65_from_2hit_on_1(self):
+        board = Board([0,0,0,0,0,-6,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,0,2,-1], 0, 0, [6,5])
+        result = board.list_moves()
+        expected = [Board([0,0,0,0,0,-6,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,0,0,-1], 0, 0, [])]
+        self.assertEqual(result, expected)
+
+    def test_can_only_move_one_die(self):
+        board = Board([1,0,-2,0,0,0,0,-2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 0, 0, [6,1])
+        result = board.list_moves()
+        expected = [Board([0,0,-2,0,0,0,1,-2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 0, 0, [1])]
+        self.assertEqual(result, expected)
+
+    def test_with_one_checker_on_bar_55(self):
+        board = Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,0,0,-2], 1, 0, [5,5,5,5])
+        result = board.list_moves()
+        expected = [Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,1,0,0,0,-2], 0, 0, [])]
+        self.assertEqual(result, expected)
+
+    def test_use_both_checkers_or_one_checker(self):
+        board = Board([1,0,0,0,0,-2,-2,-2,0,0,-2,1,-3,0,0,0,0,-2,0,0,0,0,0,-2], 0, 0, [6,4])
+        result = board.list_moves()
+        expected = [Board([1,0,0,0,0,-2,-2,-2,0,0,-2,0,-3,0,0,0,0,-2,0,0,0,1,0,-2], 0, 0, [])]
+        self.assertEqual(result, expected)
+
+    def test_is_won_true(self):
+        board = Board([0,0,0,0,0,-2,-2,-2,0,0,-2,0,-3,0,0,0,0,-2,0,0,0,0,0,-2], 0, 0, [])
+        result = board.is_won()
+        expected = True
+        self.assertEqual(result, expected)
+
+    def test_is_won_false_checkers_on_board(self):
+        board = Board([0,0,0,0,0,-2,-2,-2,0,1,-2,0,-3,0,10,0,0,-2,0,0,1,0,0,-2], 0, 0, [])
+        result = board.is_won()
+        expected = False
+        self.assertEqual(result, expected)
+
+    def test_is_won_false_checkers_on_bar(self):
+        board = Board([0,0,0,0,0,-2,-2,-2,0,0,-2,0,-3,0,0,0,0,-2,0,0,0,0,0,-2], 1, 0, [])
+        result = board.is_won()
+        expected = False
+        self.assertEqual(result, expected)
+
+    
     """
     def test_list_moves_11(self):
         board = Board([2,0,0,0,0,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 0, 0, [1,1,1,1])

@@ -11,7 +11,6 @@ class Board:
             self.points = [2,0,0,0,0,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2]
         else:
             self.points = points
-
         if dice is None:
             self.dice = []
         else:
@@ -71,6 +70,11 @@ class Board:
         
     def is_won(self):
         #checks if there are any remaining positive values in points. If yes, returns False, if no, returns True.
+        for p in self.points:
+            if p > 0:
+                return False
+        if self.h_bar > 0: #if any checkers on bar
+            return False
         return True
         
     def list_moves_in_from_bar(self): #these will only return any next positions that use up one die if there are any. 
@@ -96,10 +100,11 @@ class Board:
     
     def list_moves_bearing_off(self):
         child_boards = []
-        for i_p, p in enumerate(self.points[17:]): #points for hero's home board, represented as indices [17:23]
+        for i_p in range(17, 24): #points for hero's home board, represented as indices [17:23]
+            p = self.points[i_p]
             if p > 0: #if there is a checker on point i_p
                 for i_d, d in enumerate(self.dice): #check all possible dice that we can use to move that checker
-                    if self.is_move_legal(i_p, d):
+                    if self.is_move_legal_bearoff(i_p, d):
                         temp_dice = self.dice.copy()
                         temp_dice.pop(i_d) #remove the used die
                         temp_h_bar = self.h_bar #should always be zero
@@ -114,7 +119,7 @@ class Board:
                                 temp_points[i_p + d] += 1
                         temp_board = Board(temp_points, temp_h_bar, temp_v_bar, temp_dice)
                         child_boards.append(temp_board)
-        return child_boards.append()
+        return child_boards
     
     def list_moves_standard(self):
         child_boards = []
@@ -146,6 +151,39 @@ class Board:
         else:
             return self.list_moves_standard()
 
+
+    def remove_incomplete_moves(self, child_boards): #removes moves which did not use as many dice as possible
+        next_child_boards = []
+        min_dice_remaining = 4 #if we could not use any die during doubles
+
+        for c_b in child_boards:
+            min_dice_remaining = min(len(c_b.dice), min_dice_remaining)
+
+        for c_b in child_boards:
+            if len(c_b.dice) == min_dice_remaining:
+                next_child_boards.append(c_b)
+        
+        return next_child_boards
+    
+    def remove_moves_which_used_smaller_die(self, child_boards): #rare edge case: if you have a board where you can move either a 6 or a 3, but not both, you must move the 6.
+        next_child_boards = []
+        smallest_die_remaining = 6
+        for c_b in child_boards:
+            smallest_die_remaining = min(smallest_die_remaining, c_b.dice[0]) #only one die remaining, so we can just pull the single die at index 0
+
+        for c_b in child_boards:
+            if c_b.dice[0] == smallest_die_remaining: #if the die is the smallest die, and therefore the larger die has been used, return those boards
+                next_child_boards.append(c_b)
+
+        return next_child_boards
+    
+    def finalize_move_list(self, child_boards):
+        next_child_boards = self.remove_incomplete_moves(child_boards) #remove moves which don't use as many of the dice as possible
+        num_dice_remaining = len(next_child_boards[0].dice)
+        if num_dice_remaining == 1:
+            next_child_boards = self.remove_moves_which_used_smaller_die(next_child_boards)
+        return next_child_boards
+
     def list_moves(self):
         #basic idea: for as long as there are dice to be moved and new moves being generated in each successive generation of possible moves, we continue to generate new child_board sets
         child_boards = []
@@ -166,6 +204,9 @@ class Board:
             for c_b in child_boards:
                 next_child_boards.extend(c_b.list_moves_helper()) #third die
 
-        return sorted(list(set(next_child_boards))) # return
-        
+        if len(next_child_boards) > 0:
+            child_boards = next_child_boards
+        child_boards = sorted(list(set(child_boards)))
+        child_boards = self.finalize_move_list(child_boards)
+        return child_boards #return next possible boards
     
