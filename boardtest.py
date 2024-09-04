@@ -163,7 +163,11 @@ class Test_Moves(unittest.TestCase):
         expected = [Board([0,0,0,0,0,-5,0,-3,0,0,0,0,-5,0,0,0,0,0,0,0,0,0,0,-2], 0, 0, [6])]
         self.assertEqual(result, expected)
     
-    
+    def test_reverse(self):
+        board = Board([2,0,0,0,0,-5,0,-3,0,0,0,4,-5,0,0,0,3,0,5,0,0,0,0,-2], 1, 0, [])
+        result = board.reverse()
+        expected = Board([2,0,0,0,0,-5,0,-3,0,0,0,5,-4,0,0,0,3,0,5,0,0,0,0,-2], 0, 1, [])
+        self.assertEqual(result, expected)
     """
     def test_list_moves_11(self):
         board = Board([2,0,0,0,0,-5,0,-3,0,0,0,5,-5,0,0,0,3,0,5,0,0,0,0,-2], 0, 0, [1,1,1,1])

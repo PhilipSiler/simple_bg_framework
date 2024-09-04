@@ -1,5 +1,3 @@
-import unittest
-
 def find_unique_and_sort(boards):
     return sorted(list(set(boards)))
 
@@ -38,9 +36,23 @@ class Board:
             return NotImplemented
         return (self.points, self.h_bar, self.v_bar, self.dice) < (other.points, other.h_bar, other.v_bar, other.dice)
     
-    def update_board(self, start, end):
-        #implements the movement of a single die, expressed as a start point or an end point. -1 start is the bar, anything above 23 has been moved off the board
-        return True
+    def print_points(self):
+        print("================" + ("x" * self.h_bar)) #print hero bar
+        for point in self.points:
+            if point == 0:
+                print("|")
+            elif point > 0:
+                print("x" * point) #print hero points
+            else:
+                print("o" * point) #print villain points
+        print("================" + ("o" * self.v_bar)) #print villain bar
+
+    def reverse(self):
+        reversed_points = self.points[::-1]
+        for i in range(len(reversed_points)):
+            reversed_points[i] *= -1
+        reversed = Board(reversed_points, self.v_bar, self.h_bar, []) #instantiate new board
+        return reversed
     
     def is_move_legal(self, end):
         if end >= 0 and end < 24 and self.points[end] >= -1:
@@ -207,6 +219,8 @@ class Board:
         if len(next_child_boards) > 0:
             child_boards = next_child_boards
         child_boards = sorted(list(set(child_boards)))
+        if len(child_boards) == 0: #if there are no legal moves
+            child_boards.append(self) #append the current board as the next node
         child_boards = self.finalize_move_list(child_boards)
         return child_boards #return next possible boards
     
